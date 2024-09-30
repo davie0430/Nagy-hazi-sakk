@@ -1,21 +1,31 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "piece.h"
 #include "pseudolegal.h"
 #include "boardprt.h"
-#include "fentocb.h"
+#include "fen_code_to_chessboard_converter.h"
 #include "menu.h"
 #include "castling.h"
+#include "fen_linked_list.h"
+#include "chessboardtofen.h"
+#include "save_load.h"
 
-bool input_validity(const char *input,moving *m) {
-    if (strcmp("elore",input) == 0) {
-        // function for eloreporgetes
-        return true;
+int input_validity(piece board[8][8],const char *input,moving *m, fen_node *fen_list) {
+    if (strcmp("help",input) == 0) {
+        printf("\nFormátumra példa: \"e2e4\", ahol \"e2\" jelöli a mezőt ahonnan lépsz,\n\"e4\" pedig azt a mezőt ahová lépsz. Ha sáncolni szeretnél, az egy\nkirály lépés ugyan így. pl.: \"e1g1\". Kilépéshez bármikor írd: \"exit\"\nVisszajátszáshoz: \"nezet\"\n");
+        return 0;
     }
-    if (strcmp("hatra",input) == 0) {
-        // function for visszaporgetes
-        return true;
+    if (strcmp("nezet",input) == 0) {
+        nezet(fen_list);
+        chessboard_print(board);
+    }
+
+    if (strcmp("exit",input) == 0) {
+        if (ending_menu(-1,"döntetlen",fen_list)) {
+            return 2;
+        }
     }
     if (strlen(input) == 4) {
         m->from_col = input[0] - 'a';
@@ -23,12 +33,14 @@ bool input_validity(const char *input,moving *m) {
         m->to_col = input[2] - 'a';
         m->to_row = 7 - input[3] + '1';
         if (m->from_row > 7 || m->from_row < 0 || m->from_col > 7 || m->from_col < 0 || m->to_row > 7 || m->to_row < 0 || m->to_col > 7 || m->to_col < 0 ) {
-            return false;
+            printf("\nHIBA: Hibás formátum.\n");
+            return 0;
         } else {
-            return true;
+            return 1;
         }
     } else {
-        return false;
+        printf("\nHIBA: Hibás formátum.\n");
+        return 0;
     }
 }
 
@@ -44,14 +56,6 @@ bool is_right_color(piece board[8][8],moving *m,bool color) {
             return true;
         } else {
             return false;
-        }
-    }
-}
-
-void simpler_default_pos(piece board[8][8],piece temp_board[8][8]) {
-    for (int i = 0;i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            board[i][j] = temp_board[i][j];
         }
     }
 }
@@ -163,9 +167,6 @@ int moving_aciton(piece board[8][8], piece temp_board[8][8], moving *m, temp_mov
 
                     }
                 }
-                //vege a lepesnek. most csekkoljuk az 50 lepes szabalyt, es a lepesismetlest
-
-                //vege a lepesnek, vissza a loop elejere
                 return 0;
 
             } else {
@@ -180,7 +181,7 @@ int moving_aciton(piece board[8][8], piece temp_board[8][8], moving *m, temp_mov
     return -1;
 }
 
-bool checkmate(piece board[8][8],piece temp_board[8][8],moving *m,temp_moving *t,fen_data *data) { //?????????????
+bool checkmate(piece board[8][8],moving *m,fen_data *data) {
     for (int i = 0;i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             if (board[i][j].type == king && board[i][j].color != data->color) {
@@ -196,8 +197,8 @@ bool checkmate(piece board[8][8],piece temp_board[8][8],moving *m,temp_moving *t
     return false;
 }
 
-
-void game(piece board[8][8], fen_data *data) {
+bool game(piece board[8][8], fen_data *data,fen_node *fen_list) {
+    char fen_from_cb[100] = {0};
     char *player;
     char input[7];
     bool playing = true;
@@ -209,6 +210,8 @@ void game(piece board[8][8], fen_data *data) {
     piece temp_board[8][8];
     while (playing) {
         chessboard_print(board);
+        chessboard_to_fen(board,fen_from_cb);
+        fenlist_append(&fen_list,fen_from_cb);
         if (data->color) {
             player = "Sötét";
             data->color = false;
@@ -226,29 +229,36 @@ void game(piece board[8][8], fen_data *data) {
             }
             if (them_checked == true) {
                 //sakk van, nézzük meg, hogy matt-e
-                if (checkmate(board,temp_board,&m,&t,data)) {
+                if (checkmate(board,&m,data)) {
+                    playing = false;
                     printf("\nSAKK MATT!\n");
                     if (data->color) {
                         int eredmeny = 1;
                         char gyoztes[] = "sötét";
-                        ending_menu(eredmeny,gyoztes);
+                        if (ending_menu(eredmeny,gyoztes,fen_list)) {
+                            return false;
+                        }
                     } else {
                         int eredmeny = 0;
                         char gyoztes[] = "világos";
-                        ending_menu(eredmeny,gyoztes);
+                        if (ending_menu(eredmeny,gyoztes,fen_list)) {
+                            return false;
+                        }
                     }
                 } else {
                     printf("\nSAKK!\n");
                 }
             }
-            printf("\n%s lépése: ", player);
+            printf("\n%s lépése (Segítség: \"help\"): ", player);
             if (scanf("%6s", input) == 1) {
                 int c;
                 while ((c = getchar()) != '\n' && c != EOF) {}
                 if (strlen(input) > 5) {
                     printf("\nHibás formátum.\n");
 
-                } else if (input_validity(input,&m)) {
+                }
+                int inp = input_validity(board,input,&m,fen_list);
+                if (inp == 1) {
                     if (is_right_color(board,&m,data->color)) {
                         //Helyes az input, most megnézzük, hogy sancolni akar-e
                         if (!them_checked && castling(&m, data, board)) { //ha nem vagy sakkban csak akkor lehet sancolni
@@ -261,21 +271,63 @@ void game(piece board[8][8], fen_data *data) {
                                 } else {
                                     fifty_move_rule_count++;
                                 }
-                                printf("\n%d\n",fifty_move_rule_count);
+                                if (fifty_move_rule_count == 50) { //ha elertunk 50 lepest leutes, vagy gyaloglepes nelkul:
+                                    char gyoztes[] = "döntetlen";
+                                    playing = false;
+                                    if (ending_menu(3,gyoztes,fen_list)) {
+                                        return false;
+                                    }
+                                }
                                 break;
                             }
                         }
-                    } else {
-                        printf("\nHIBA: Illegális lépés, ez nem a te bábud.\n");
-                        for (int i = 0;i < 8; i++) {
-                            for (int j = 0; j < 8; j++) {
-                                printf("%d ",board[i][j].color);
-                            }
-                            printf("\n");
-                        }
-                    }
-                } else { printf("\nHIBA: Hibás formátum.\n"); }
+                    } else { printf("\nHIBA: Illegális lépés, ez nem a te bábud.\n"); }
+                } if (inp == 2) {
+                    return true;
+                }
             } else { printf("\nHIBA: Hibás formátum.\n"); }
+        }
+    }
+    return true;
+}
+
+void start() {
+    int playing = true;
+    while (playing) {
+        fen_node *fen_list = initialize_fenlist(); //lancolt lista az allasnak
+        int choice = menu1();
+        if (choice == 1) {
+            fenlist_free(&fen_list); //ha esteleg mar volt elozo jatszma, szabaditsuk fel a memoriat
+            char fen[100] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+            piece chessboard[8][8];
+            fen_data data; //ez az eppen kovetkezo szin ellentetes szine
+            fen_to_chessboard(fen,chessboard,&data,true);
+            if (!game(chessboard,&data,fen_list)) {
+                playing = false;
+            }
+
+        } else if (choice == 2) {
+            fenlist_free(&fen_list);
+            printf("Kérlek adj meg egy valós FEN kódot: ");
+            char fen[100] = {0};
+            scanf(" %[^\n]s",fen);
+            piece chessboard[8][8];
+            fen_data data; //ez az eppen kovetkezo szin ellentetes szine
+            fen_to_chessboard(fen,chessboard,&data,true);
+            if (!game(chessboard,&data,fen_list)) {
+                playing = false;
+            }
+        } else if (choice == 3) {
+            fen_node *head = initialize_fenlist(); //lancolt lista az allasnak
+            if (file_load(&head) == 0) {
+                nezet(head);
+                fenlist_free(&head);
+            } else {
+                clear_terminal();
+            }
+        } else if (choice == 4) {
+            fenlist_free(&fen_list);
+            exit(0);
         }
     }
 }
@@ -284,26 +336,6 @@ int main(void) {
 #ifdef _WIN32
     SetConsoleOutputCP(65001);
 #endif
-    int choice = menu1();
-    if (choice == 1) {
-        char fen[100] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        piece chessboard[8][8];
-        fen_data data; //ez az eppen kovetkezo szin ellentetes szine
-        fen_to_chessboard(fen,chessboard,&data);
-        game(chessboard,&data);
-
-    } else if (choice == 2) {
-        printf("Kérlek adj meg egy valós FEN kódot: ");
-        char fen[100] = {0};
-        scanf(" %[^\n]s",fen);
-        piece chessboard[8][8];
-        fen_data data; //ez az eppen kovetkezo szin ellentetes szine
-        fen_to_chessboard(fen,chessboard,&data);
-        game(chessboard,&data);
-    } else if (choice == 3) {
-        return 0;
-    } else if (choice == 4) {
-        return 0;
-    }
+    start();
     return 0;
 }

@@ -39,7 +39,7 @@ void clear_terminal() {
 }
 
 void chessboard_print(piece chessboard[8][8]) {
-    //clear_terminal();
+    clear_terminal();
     int notation = 8;
     for (int i = 8;i > 0;i--) {
         printf("%c ",notation + 'a' - i);

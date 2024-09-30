@@ -1,0 +1,3 @@
+D:/Mindenes/Suli/BME VIK Szopas/Elso felev/Programozás alapjai 1/Beadott nagyhazi/vegleges (1)/cmake-build-debug/CMakeFiles/chessmod.dir
+D:/Mindenes/Suli/BME VIK Szopas/Elso felev/Programozás alapjai 1/Beadott nagyhazi/vegleges (1)/cmake-build-debug/CMakeFiles/edit_cache.dir
+D:/Mindenes/Suli/BME VIK Szopas/Elso felev/Programozás alapjai 1/Beadott nagyhazi/vegleges (1)/cmake-build-debug/CMakeFiles/rebuild_cache.dir

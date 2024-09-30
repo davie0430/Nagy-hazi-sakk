@@ -61,5 +61,10 @@ typedef struct temp_moving {
     int temp_to_col;
 } temp_moving;
 
+typedef struct fen_node {
+    char data[100]; //fen (csak a tábla)
+    struct fen_node* next;
+    struct fen_node* prev;
+} fen_node;
 
 #endif //PIECE_H

@@ -2,6 +2,7 @@
 #define CASTLING_H
 
 #include "piece.h"
+#include <stdbool.h>
 
 bool is_king_in_check(piece board[8][8]);
 
