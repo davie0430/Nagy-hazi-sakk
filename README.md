@@ -1,4 +1,8 @@
 # Felhasználói dokumentáció a sakk programhoz
+
+![2023-11-26_18-31-01 (1)](https://github.com/user-attachments/assets/2d4da652-a16d-4ee8-8685-96cdb885fd84)
+
+
 ### A billentyűzeten a számok begépelésével tud navigálni a menüpontok között.
  1. Játék indítása
  2. Játék indítása speciális állástól
@@ -17,5 +21,3 @@ Kiléptél a játékból.
 - 1 Játék mentése
 - 2 Vissza a főmenübe
 - 3 Kilépés
-
-![2023-11-26_18-31-01 (1)](https://github.com/user-attachments/assets/2d4da652-a16d-4ee8-8685-96cdb885fd84)
